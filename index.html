@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pathfinder — Discover Your Next Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090d;
+    --bg-elevated: #121218;
+    --bg-card: #16161e;
+    --border: #26262f;
+    --border-soft: #1e1e26;
+    --text: #f0f0f3;
+    --text-muted: #93939f;
+    --text-faint: #5c5c68;
+    --cyan: #4fe8d8;
+    --purple: #9d6bff;
+    --purple-soft: rgba(157, 107, 255, 0.14);
+    --cyan-soft: rgba(79, 232, 216, 0.12);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(14px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 8px 24px rgba(157, 107, 255, 0.35); }
+    50% { box-shadow: 0 8px 32px rgba(79, 232, 216, 0.5); }
+  }
+
+  html { background: var(--bg); }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  img, svg { max-width: 100%; display: block; }
+
+  ::selection { background: var(--purple-soft); color: var(--text); }
+
+  :focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 20px; }
+  }
+
+  /* ---------- NAV ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(9, 9, 13, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+
+  .logo {
+    font-family: var(--serif);
+    font-size: 21px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-mark {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    font-size: 14.5px;
+    color: var(--text-muted);
+  }
+
+  .nav-links button {
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    padding: 6px 0;
+    position: relative;
+  }
+
+  .nav-links button.active { color: var(--text); }
+
+  .nav-links button.active::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 1.5px;
+    background: var(--cyan);
+  }
+
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+  }
+
+  .nav-actions { display: flex; align-items: center; gap: 14px; }
+
+  .btn {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .btn:hover { border-color: var(--text-faint); }
+
+  .btn-primary {
+    background: var(--text);
+    color: #0a0a0d;
+    border: 1px solid var(--text);
+  }
+
+  .btn-primary:hover { background: #d9d9df; border-color: #d9d9df; }
+
+  .btn-ghost {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover { color: var(--text); }
+
+  /* ---------- VIEWS ---------- */
+  .view { display: none; }
+  .view.active { display: block; animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    padding: 96px 0 64px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .hero-eyebrow {
+    color: var(--cyan);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 22px;
+    animation: fadeSlideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(38px, 6vw, 68px);
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+    max-width: 780px;
+    color: var(--text);
+    animation: fadeSlideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--text-faint);
+  }
+
+  .hero p.sub {
+    margin-top: 24px;
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 480px;
+    animation: fadeSlideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+  }
+
+  .search-shell {
+    margin-top: 44px;
+    max-width: 620px;
+    animation: fadeSlideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+  }
+
+  .search-label {
+    font-size: 12.5px;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 6px 8px 6px 20px;
+    transition: border-color 0.15s ease;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px var(--purple-soft);
+  }
+
+  .search-box input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 15.5px;
+    font-family: var(--sans);
+    padding: 13px 0;
+  }
+
+  .search-box input:focus { outline: none; }
+  .search-box input::placeholder { color: var(--text-faint); }
+
+  .search-box button {
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    border: none;
+    color: #0a0a0d;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 20px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .quick-tags {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .quick-tag {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    background: none;
+  }
+  .quick-tag:hover { border-color: var(--cyan); color: var(--text); }
+
+  /* ---------- SECTION HEADERS ---------- */
+  .section { padding: 64px 0; border-bottom: 1px solid var(--border-soft); }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    gap: 20px;
+  }
+
+  .section-head h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+  }
+
+  .section-head .desc {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 320px;
+    text-align: right;
+  }
+
+  @media (max-width: 640px) {
+    .section-head { flex-direction: column; }
+    .section-head .desc { text-align: left; }
+  }
+
+  /* ---------- CARDS ---------- */
+  .row-scroll {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin: 0 -32px;
+    padding-left: 32px;
+    padding-right: 32px;
+    scrollbar-width: none;
+  }
+  .row-scroll::-webkit-scrollbar { display: none; }
+
+  .path-card {
+    flex: 0 0 280px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    cursor: pointer;
+    animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .path-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--text-faint);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+  }
+
+  .path-index {
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+
+  .path-card h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .path-card p {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .path-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-faint);
+    border-top: 1px solid var(--border-soft);
+    padding-top: 14px;
+  }
+
+  .path-meta .accent { color: var(--cyan); }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 900px) {
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 620px) {
+    .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .rare-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: transform 0.18s ease;
+  }
+  .rare-card:hover { transform: translateY(-3px); }
+
+  .rare-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--purple), var(--cyan));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .rare-card:hover::before { opacity: 1; }
+
+  .rare-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--purple);
+    background: var(--purple-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+
+  .rare-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+  .rare-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 18px; }
+
+  .rare-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .rare-stats b { color: var(--text); font-weight: 600; display: block; font-size: 14px; }
+
+  /* ---------- DIRECTORY ---------- */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+
+  .filter-chip {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease, transform 0.15s ease;
+  }
+
+  .filter-chip.on {
+    border-color: var(--cyan);
+    color: var(--bg);
+    background: var(--cyan);
+    transform: scale(1.04);
+  }
+
+  .directory-count {
+    font-size: 13px;
+    color: var(--text-faint);
+    margin-bottom: 20px;
+  }
+
+  /* ---------- BLOG ---------- */
+  .blog-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+
+  .blog-tab {
+    font-size: 13.5px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+  }
+  .blog-tab.on { color: var(--text); background: var(--bg-card); border: 1px solid var(--border); }
+
+  .article-card {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 20px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: padding-left 0.2s ease;
+  }
+  .article-card:hover { padding-left: 6px; }
+  .article-card:last-child { border-bottom: none; }
+
+  /* FIX: Fixed image sizing so photo displays fully & scales properly without browser zoom */
+  .article-media {
+    width: 100%;
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+
+  .article-num {
+    font-family: var(--serif);
+    font-size: 26px;
+    color: var(--text-faint);
+    font-weight: 300;
+  }
+
+  .article-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .article-card p { font-size: 14px; color: var(--text-muted); }
+  .article-card .cat { font-size: 11.5px; color: var(--cyan); font-weight: 600; margin-bottom: 8px; display: block; }
+
+  /* ---------- DASHBOARD ---------- */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 32px;
+  }
+  @media (max-width: 800px) { .dash-grid { grid-template-columns: 1fr; } }
+
+  .dash-profile {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 28px 22px;
+    text-align: center;
+    height: fit-content;
+  }
+
+  .avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    margin: 0 auto 16px;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #0a0a0d;
+    font-size: 20px;
+    overflow: hidden;
+  }
+
+  .dash-profile h3 { font-size: 16px; margin-bottom: 4px; }
+  .dash-profile .tier {
+    font-size: 12px; color: var(--text-faint); margin-bottom: 20px;
+  }
+
+  .xp-bar {
+    height: 6px;
+    background: var(--bg-elevated);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .xp-fill {
+    height: 100%;
+    width: 42%;
+    background: linear-gradient(90deg, var(--purple), var(--cyan));
+  }
+  .xp-label { font-size: 11.5px; color: var(--text-faint); }
+
+  .plan-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    background: var(--bg-card);
+    margin-bottom: 32px;
+  }
+
+  .plan-card.free-plan {
+    border-color: var(--cyan);
+    background: linear-gradient(180deg, var(--cyan-soft), var(--bg-card) 45%);
+  }
+
+  .plan-card h4 { font-size: 16px; margin-bottom: 6px; }
+  .free-plan-sub { font-size: 13.5px; color: var(--text-muted); margin-bottom: 18px; }
+
+  .plan-card ul { list-style: none; font-size: 13.5px; color: var(--text-muted); }
+  .plan-card li { padding: 6px 0; display: flex; gap: 8px; }
+
+  .bookmarks-head { font-size: 14px; color: var(--text-faint); margin-bottom: 14px; }
+
+  /* ---------- AI GUIDE ---------- */
+  .ai-launcher {
+    position: fixed;
+    bottom: 26px;
+    right: 26px;
+    z-index: 200;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(157, 107, 255, 0.35);
+    animation: pulseGlow 3.2s ease-in-out infinite;
+    transition: transform 0.2s ease;
+  }
+  .ai-launcher:hover { transform: scale(1.06); }
+  .ai-launcher svg { width: 24px; height: 24px; }
+
+  .ai-panel {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    top: 0;
+    width: 400px;
+    max-width: 100vw;
+    background: var(--bg-elevated);
+    border-left: 1px solid var(--border);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ai-panel.open { transform: translateX(0); }
+
+  .ai-head {
+    padding: 22px 22px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ai-head h3 { font-family: var(--serif); font-size: 18px; font-weight: 500; }
+  .ai-head .sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .ai-close { background: none; border: none; color: var(--text-faint); font-size: 20px; cursor: pointer; line-height: 1; }
+
+  .ai-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .msg { max-width: 88%; font-size: 14px; line-height: 1.55; padding: 12px 14px; border-radius: 12px; animation: slideInRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .msg.bot { background: var(--bg-card); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 3px; }
+  .msg.user { background: var(--purple-soft); align-self: flex-end; border-bottom-right-radius: 3px; }
+  .msg.system { align-self: center; font-size: 12px; color: var(--text-faint); text-align: center; background: none; }
+
+  .ai-input-row {
+    padding: 16px 22px 22px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+  }
+
+  .ai-input-row input {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+  }
+  .ai-input-row input:focus { outline: none; border-color: var(--cyan); }
+
+  .ai-send {
+    background: var(--text);
+    color: #0a0a0d;
+    border: none;
+    border-radius: 10px;
+    width: 42px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .ai-config-note {
+    margin: 0 22px 14px;
+    padding: 12px 14px;
+    background: var(--cyan-soft);
+    border: 1px solid rgba(79, 232, 216, 0.3);
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .ai-config-note a, .ai-config-note button.link {
+    color: var(--cyan);
+    background: none; border: none; font: inherit; cursor: pointer; padding: 0;
+    text-decoration: underline;
+  }
+
+  .backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 250;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .backdrop.show { opacity: 1; pointer-events: auto; }
+
+  .config-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+  }
+  .config-modal.open { display: flex; }
+  .config-box {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 28px;
+    width: 400px;
+    max-width: 90vw;
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .config-box h4 { font-size: 16px; margin-bottom: 8px; }
+  .config-box p { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+  .config-box input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    margin-bottom: 16px;
+  }
+  .config-box input:focus { outline: none; border-color: var(--cyan); }
+  .config-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ---------- PATH BUILDER ---------- */
+  .builder-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 36px;
+  }
+  @media (max-width: 820px) { .builder-layout { grid-template-columns: 1fr; } }
+
+  .builder-form {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    height: fit-content;
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    margin-bottom: 10px;
+    resize: vertical;
+  }
+  .form-input:focus { outline: none; border-color: var(--cyan); }
+  .form-input::placeholder { color: var(--text-faint); }
+
+  .builder-timeline {
+    position: relative;
+    padding-left: 28px;
+  }
+
+  .builder-timeline::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    bottom: 6px;
+    width: 1.5px;
+    background: linear-gradient(180deg, var(--cyan), var(--purple));
+  }
+
+  .timeline-empty {
+    color: var(--text-faint);
+    font-size: 13.5px;
+    padding: 8px 0;
+  }
+
+  .milestone-item {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .milestone-item::before {
+    content: "";
+    position: absolute;
+    left: -27.5px;
+    top: 22px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 0 4px var(--bg);
+  }
+
+  .milestone-time {
+    font-size: 11.5px;
+    color: var(--cyan);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .milestone-item h4 { font-size: 15.5px; margin-bottom: 6px; }
+  .milestone-item p { font-size: 13.5px; color: var(--text-muted); }
+
+  .milestone-remove {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .milestone-remove:hover { color: var(--text); }
+
+  /* ---------- COMMUNITY ---------- */
+  .community-note {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 28px;
+  }
+
+  .community-feed {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 900px) { .community-feed { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .community-feed { grid-template-columns: 1fr; } }
+
+  .post-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: transform 0.18s ease;
+  }
+  .post-card:hover { transform: translateY(-3px); }
+
+  .post-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .post-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #0a0a0d;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+  }
+
+  .post-author { font-size: 13.5px; font-weight: 600; }
+  .post-type-badge {
+    margin-left: auto;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .post-card h3 { font-size: 16px; margin-bottom: 6px; }
+  .post-card p { font-size: 13.5px; color: var(--text-muted); }
+
+  .post-card .article-media { margin-top: 12px; max-height: 200px; }
+
+  .post-video-placeholder {
+    margin-top: 12px;
+    height: 180px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--purple-soft), var(--cyan-soft));
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+  }
+
+  .post-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  .post-milestones {
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--cyan);
+    font-weight: 600;
+  }
+
+  footer {
+    padding: 48px 0;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 26 26" fill="none">
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="26" y2="26" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="var(--cyan)"/>
+            <stop offset="1" stop-color="var(--purple)"/>
+          </linearGradient>
+        </defs>
+        <circle cx="13" cy="13" r="11.5" stroke="url(#logoGrad)" stroke-width="1.5"/>
+        <path d="M17 9L11.5 11.5L9 17L14.5 14.5L17 9Z" fill="url(#logoGrad)"/>
+      </svg>
+      Pathfinder
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" data-view="home">Home</button>
+      <button class="nav-link" data-view="directory">Obscure Directory</button>
+      <button class="nav-link" data-view="blog">Stories</button>
+      <button class="nav-link" data-view="builder">Build Your Path</button>
+      <button class="nav-link" data-view="community">Community</button>
+      <button class="nav-link" data-view="dashboard">Dashboard</button>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-ghost" id="signin-btn">Sign in</button>
+      <button class="btn btn-primary" onclick="switchView('dashboard')">My Dashboard</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HOME ============ -->
+<div class="view active" id="view-home">
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-eyebrow">2,400+ paths documented, from the familiar to the barely-named</div>
+      <h1>Most careers worth having<br><em>don't have a job title yet.</em></h1>
+      <p class="sub">Pathfinder maps traditional fields and the rare, obscure, half-invented paths in business, tech, sport and beyond — so you can find yours before it has a name.</p>
+
+      <div class="search-shell">
+        <div class="search-label">DISCOVER YOUR NEXT PATH</div>
+        <div class="search-box">
+          <input type="text" placeholder="Try 'quiet, solo, pays well' or 'scent design'..." id="hero-search">
+          <button onclick="switchView('directory')">Explore</button>
+        </div>
+        <div class="quick-tags">
+          <button class="quick-tag">#LowCapital</button>
+          <button class="quick-tag">#RemoteSolo</button>
+          <button class="quick-tag">#HighCreativity</button>
+          <button class="quick-tag">#TechAdjacent</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Trending this week</h2>
+        <div class="desc">Paths gaining the most searches and saves across Pathfinder right now.</div>
+      </div>
+      <div class="row-scroll" id="trending-row"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Rare careers of the week</h2>
+        <div class="desc">Real, working paths almost nobody grows up hearing about.</div>
+      </div>
+      <div class="grid-3" id="rare-grid"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ DIRECTORY ============ -->
+<div class="view" id="view-directory">
+  <section class="section" style="border-bottom:none; padding-top:56px;">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>The Obscure Directory</h2>
+        <div class="desc">Filter by what actually matters to you — not job titles.</div>
+      </div>
+      <div class="filter-bar" id="filter-bar"></div>
+      <div class="directory-count" id="directory-count"></div>
+      <div class="grid-3" id="directory-grid"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ BLOG ============ -->
+<div class="view" id="view-blog">
+  <section class="section" style="border-bottom:none; padding-top:56px;">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Stories & insight</h2>
+        <div class="desc">Field notes, case studies, and honest pivots from people building unusual careers.</div>
+      </div>
+      <div class="blog-tabs" id="blog-tabs"></div>
+      <div id="article-list"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ PATH BUILDER ============ -->
+<div class="view" id="view-builder">
+  <section class="section" style="border-bottom:none; padding-top:56px;">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Build your path</h2>
+        <div class="desc">Map your own career or startup journey as a visual, sequential roadmap — then publish it for others to learn from.</div>
+      </div>
+
+      <div class="builder-layout">
+        <div class="builder-form">
+          <div class="field-label">Roadmap title</div>
+          <input type="text" id="roadmap-title" placeholder="e.g. From bootcamp grad to indie founder" class="form-input">
+
+          <div class="field-label" style="margin-top:20px;">Add a milestone</div>
+          <input type="text" id="milestone-title" placeholder="Milestone title" class="form-input">
+          <input type="text" id="milestone-time" placeholder="Timeframe (e.g. Month 3)" class="form-input">
+          <textarea id="milestone-desc" placeholder="What happened, what you learned..." class="form-input" rows="3"></textarea>
+          <button class="btn btn-primary" id="add-milestone-btn" style="width:100%; margin-top:8px;">Add milestone</button>
+
+          <button class="btn btn-ghost" id="publish-roadmap-btn" style="width:100%; margin-top:10px;">Publish this roadmap</button>
+        </div>
+
+        <div class="builder-timeline" id="builder-timeline">
+          <div class="timeline-empty">No milestones yet — add your first one to start the timeline.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ COMMUNITY ============ -->
+<div class="view" id="view-community">
+  <section class="section" style="border-bottom:none; padding-top:56px;">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Community</h2>
+        <div class="desc">Stories, reels, and roadmaps from people mapping out unusual careers.</div>
+      </div>
+      <div class="community-note">This feed mixes Pathfinder's example community with anything you've published in this browser. Connect a real backend to make everyone's posts visible to everyone.</div>
+      <div class="blog-tabs" id="community-tabs"></div>
+      <div class="community-feed" id="community-feed"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div class="view" id="view-dashboard">
+  <section class="section" style="border-bottom:none; padding-top:56px;">
+    <div class="wrap dash-grid">
+      <div class="dash-profile">
+        <div class="avatar" id="dash-avatar"></div>
+        <h3 id="dash-name">Explorer</h3>
+        <div class="tier">Pathfinder member</div>
+        <button class="btn btn-ghost" id="edit-profile-btn" style="font-size: 12px; padding: 4px 12px; margin-bottom: 16px; border: 1px solid var(--border);">Edit Profile</button>
+        <div class="xp-bar"><div class="xp-fill"></div></div>
+        <div class="xp-label">420 / 1000 XP to next badge</div>
+      </div>
+
+      <div>
+        <h2 style="font-family:var(--serif); font-weight:400; font-size:22px; margin-bottom:20px;">Your account</h2>
+        <div class="plan-card free-plan">
+          <h4>Everything, free</h4>
+          <p class="free-plan-sub">No tiers, no paywalls — every feature on Pathfinder is open to everyone.</p>
+          <ul>
+            <li>→ Full access to every story and deep-dive</li>
+            <li>→ Unlimited browsing of the Obscure Directory</li>
+            <li>→ Unlimited AI Career Guide conversations</li>
+            <li>→ Build and publish unlimited roadmaps</li>
+            <li>→ Save unlimited paths</li>
+          </ul>
+        </div>
+
+        <div class="bookmarks-head">Your saved paths (3)</div>
+        <div class="grid-3" id="dash-bookmarks"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>Pathfinder — a prototype interface. Sample data shown throughout.</footer>
+
+<!-- ============ PROFILE SETTINGS MODAL ============ -->
+<div class="config-modal" id="profile-modal">
+  <div class="config-box" style="width:420px;">
+    <h4>Profile Settings</h4>
+    <p>Update your display name and profile picture (PFP).</p>
+    
+    <div class="field-label">Display Name</div>
+    <input type="text" id="profile-name-input" placeholder="Your name or alias" class="form-input">
+    
+    <div class="field-label" style="margin-top:10px;">Profile Picture (PFP)</div>
+    <input type="file" id="profile-pfp-input" accept="image/*" class="form-input" style="padding:8px;">
+    <div id="pfp-preview" style="margin-bottom:16px;"></div>
+
+    <div class="config-actions">
+      <button class="btn btn-ghost" id="profile-cancel">Cancel</button>
+      <button class="btn btn-primary" id="profile-save">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AI GUIDE ============ -->
+<div class="backdrop" id="backdrop"></div>
+
+<button class="ai-launcher" id="ai-launcher" aria-label="Open AI Career Guide">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4Z"/><path d="M6 12a6 6 0 0 0 12 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+</button>
+
+<div class="ai-panel" id="ai-panel">
+  <div class="ai-head">
+    <div>
+      <h3>AI Career Guide</h3>
+      <div class="sub">Tell me what you're drawn to — I'll point you somewhere specific.</div>
+    </div>
+    <button class="ai-close" id="ai-close">&times;</button>
+  </div>
+
+  <div class="ai-config-note" id="config-note">
+    Not connected yet. <button class="link" id="open-config">Add your AI backend URL</button> to activate real responses.
+  </div>
+
+  <div class="ai-body" id="ai-body">
+    <div class="msg bot">Hi — I'm your Pathfinder guide. Describe an interest, even a vague one, and I'll suggest specific paths from the directory.</div>
+  </div>
+
+  <div class="ai-input-row">
+    <input type="text" id="ai-input" placeholder="e.g. I like quiet, detail-focused work...">
+    <button class="ai-send" id="ai-send" aria-label="Send">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="config-modal" id="config-modal">
+  <div class="config-box">
+    <h4>Connect your AI backend</h4>
+    <p>Paste the URL of your deployed Cloudflare Worker or Cloud Function that proxies Gemini. Your API key stays there — never in this page.</p>
+    <input type="text" id="proxy-url-input" placeholder="https://gemini-proxy.yourname.workers.dev">
+    <div class="config-actions">
+      <button class="btn btn-ghost" id="config-cancel">Cancel</button>
+      <button class="btn btn-primary" id="config-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="config-modal" id="story-modal">
+  <div class="config-box" style="width:460px;">
+    <h4>Share your story</h4>
+    <p>Add a write-up, and optionally a photo or short video from your journey.</p>
+    <input type="text" id="story-title-input" placeholder="Story title" class="form-input">
+    <select id="story-cat-input" class="form-input"></select>
+    <textarea id="story-desc-input" class="form-input" placeholder="One or two sentence summary..." rows="3"></textarea>
+    <div class="field-label">Photo (optional)</div>
+    <input type="file" id="story-media-input" accept="image/*" class="form-input" style="padding:8px;">
+    <div id="story-media-preview"></div>
+    <div class="config-actions" style="margin-top:6px;">
+      <button class="btn btn-ghost" id="story-cancel">Cancel</button>
+      <button class="btn btn-primary" id="story-save">Publish story</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat build) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.0/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.0/firebase-firestore-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.0/firebase-storage-compat.min.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAP38SyuZJniBG6MHMXLpZo4fQZmF1PrDI",
+    authDomain: "backend-for-hackathon.firebaseapp.com",
+    projectId: "backend-for-hackathon",
+    storageBucket: "backend-for-hackathon.firebasestorage.app",
+    messagingSenderId: "783885600781",
+    appId: "1:783885600781:web:8f207eeac29c2f2b93ad44",
+    measurementId: "G-7TKTTYBY65"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+</script>
+
+<script>
+  // ---------- Sample data ----------
+  const trending = [
+    { title: "Synthetic Biology Consultant", desc: "Advises startups on bio-manufacturing feasibility before they build.", tag: "Rising 34%" },
+    { title: "Voice & Sound Branding Designer", desc: "Crafts the audio identity of apps, cars, and smart devices.", tag: "Rising 28%" },
+    { title: "Esports Data Scout", desc: "Finds undervalued competitive gaming talent using performance data.", tag: "Rising 22%" },
+    { title: "Micro-SaaS Solo Founder", desc: "Builds and runs single-purpose software tools alone, profitably.", tag: "Rising 19%" },
+    { title: "Climate Risk Underwriter", desc: "Prices insurance risk for a warming world.", tag: "Rising 17%" },
+  ];
+
+  const rareCareers = [
+    { tag: "#LowCapital", title: "Professional Forager & Wild Food Supplier", desc: "Supplies high-end restaurants with foraged mushrooms, herbs, and greens sourced sustainably from local land.", stat1: "$1.5K", label1: "startup cost", stat2: "Low", label2: "barrier" },
+    { tag: "#RemoteSolo", title: "Perfume Formulation Consultant", desc: "Freelances for indie fragrance brands, blending scent profiles from a home lab.", stat1: "2-4yr", label1: "to expertise", stat2: "Med", label2: "risk" },
+    { tag: "#TechAdjacent", title: "Prosthetics 3D-Print Technician", desc: "Designs and prints custom prosthetic limbs using CAD and low-cost 3D printing.", stat1: "$8K", label1: "avg. setup", stat2: "Med", label2: "barrier" },
+  ];
+
+  const directoryPaths = [
+    { tag: ["#LowCapital", "#RemoteSolo"], title: "Professional Forager", desc: "Sources wild ingredients for restaurants and retailers." },
+    { tag: ["#HighCreativity", "#RemoteSolo"], title: "Perfume Formulator", desc: "Freelance scent design for indie fragrance houses." },
+    { tag: ["#TechAdjacent"], title: "Prosthetics Print Technician", desc: "Custom 3D-printed prosthetic design and fabrication." },
+    { tag: ["#TechAdjacent", "#HighCreativity"], title: "Synthetic Biology Consultant", desc: "Feasibility advisory for bio-manufacturing startups." },
+    { tag: ["#RemoteSolo", "#LowCapital"], title: "Micro-SaaS Founder", desc: "Builds and runs single-purpose profitable software alone." },
+    { tag: ["#HighCreativity"], title: "Voice & Sound Branding Designer", desc: "Audio identity design for apps, cars, and devices." },
+    { tag: ["#TechAdjacent", "#RemoteSolo"], title: "Esports Data Scout", desc: "Finds undervalued competitive gaming talent via data." },
+    { tag: ["#LowCapital"], title: "Climate Risk Underwriter", desc: "Prices insurance risk in a warming climate." },
+    { tag: ["#HighCreativity", "#TechAdjacent"], title: "Generative Textile Pattern Designer", desc: "Uses code to generate fabric prints for fashion labels." },
+  ];
+
+  // Baseline example content — real user posts come live from Firestore and merge on top of this
+  const articles = {
+    "Uncharted Paths": [
+      { title: "I forage mushrooms for Michelin kitchens — here's the real income", desc: "A year-one breakdown of costs, contracts, and burnout." },
+      { title: "Why perfume consulting has almost no formal path in", desc: "Three formulators on how they actually broke in." },
+    ],
+    "Tech": [
+      { title: "The rise of the AI evaluation specialist", desc: "A quietly growing role most job boards don't have a name for yet." },
+    ],
+    "Business": [
+      { title: "Running a $40K/mo micro-SaaS, completely solo", desc: "What breaks first when you have no team at all." },
+    ],
+    "Sports": [
+      { title: "Inside esports scouting: reading data, not highlight reels", desc: "How scouts find talent before it's visible on stream." },
+    ],
+    "Entrepreneurship": [
+      { title: "I raised $0 and still built a real business", desc: "A bootstrapped founder on capital-free growth tactics." },
+    ],
+  };
+
+  // Live posts from Firestore — populated by the listener set up further down
+  let firestorePosts = [];
+
+  // ---------- Render trending ----------
+  const trendingRow = document.getElementById("trending-row");
+  trending.forEach((p, i) => {
+    trendingRow.innerHTML += `
+      <div class="path-card">
+        <div class="path-index">0${i + 1}</div>
+        <h3>${p.title}</h3>
+        <p>${p.desc}</p>
+        <div class="path-meta"><span>Career path</span><span class="accent">${p.tag}</span></div>
+      </div>`;
+  });
+
+  // ---------- Render rare careers ----------
+  const rareGrid = document.getElementById("rare-grid");
+  rareCareers.forEach(c => {
+    rareGrid.innerHTML += `
+      <div class="rare-card">
+        <span class="rare-tag">${c.tag}</span>
+        <h3>${c.title}</h3>
+        <p>${c.desc}</p>
+        <div class="rare-stats">
+          <div><b>${c.stat1}</b>${c.label1}</div>
+          <div><b>${c.stat2}</b>${c.label2}</div>
+        </div>
+      </div>`;
+  });
+
+  // ---------- Directory filters ----------
+  const allTags = ["#LowCapital", "#HighCreativity", "#TechAdjacent", "#RemoteSolo"];
+  const filterBar = document.getElementById("filter-bar");
+  let activeTags = new Set();
+
+  allTags.forEach(tag => {
+    const chip = document.createElement("button");
+    chip.className = "filter-chip";
+    chip.textContent = tag;
+    chip.onclick = () => {
+      if (activeTags.has(tag)) { activeTags.delete(tag); chip.classList.remove("on"); }
+      else { activeTags.add(tag); chip.classList.add("on"); }
+      renderDirectory();
+    };
+    filterBar.appendChild(chip);
+  });
+
+  function renderDirectory() {
+    const grid = document.getElementById("directory-grid");
+    const filtered = activeTags.size === 0
+      ? directoryPaths
+      : directoryPaths.filter(p => p.tag.some(t => activeTags.has(t)));
+
+    document.getElementById("directory-count").textContent = `${filtered.length} path${filtered.length !== 1 ? "s" : ""} found`;
+
+    grid.innerHTML = filtered.map(p => `
+      <div class="rare-card">
+        <span class="rare-tag">${p.tag[0]}</span>
+        <h3>${p.title}</h3>
+        <p>${p.desc}</p>
+      </div>`).join("");
+  }
+  renderDirectory();
+
+  // ---------- Blog tabs ----------
+  const blogTabsEl = document.getElementById("blog-tabs");
+  const categories = Object.keys(articles);
+  let activeCat = categories[0];
+
+  function renderBlogTabs() {
+    blogTabsEl.innerHTML = categories.map(c =>
+      `<button class="blog-tab ${c === activeCat ? "on" : ""}" data-cat="${c}">${c}</button>`
+    ).join("");
+    blogTabsEl.querySelectorAll(".blog-tab").forEach(btn => {
+      btn.onclick = () => { activeCat = btn.dataset.cat; renderBlogTabs(); renderArticles(); };
+    });
+  }
+
+  function renderArticles() {
+    const list = document.getElementById("article-list");
+    const realOnes = firestorePosts
+      .filter(p => p.category === activeCat && (p.type === "story" || p.type === "reel"))
+      .map(p => ({ title: p.title, desc: p.desc, author: p.authorName, media: p.media || null }));
+    const combined = [...realOnes, ...(articles[activeCat] || [])];
+
+    list.innerHTML = combined.map((a, i) => `
+      <div class="article-card">
+        <div class="article-num">0${i + 1}</div>
+        <div>
+          <span class="cat">${activeCat}${a.author ? ` · by ${a.author}` : ""}</span>
+          <h3>${a.title}</h3>
+          <p>${a.desc}</p>
+          ${a.media ? (a.media.type === "video"
+            ? `<video class="article-media" src="${a.media.src}" controls></video>`
+            : `<img class="article-media" src="${a.media.src}" alt="">`) : ""}
+        </div>
+      </div>`).join("");
+  }
+
+  renderBlogTabs();
+  renderArticles();
+
+  // ---------- Dashboard bookmarks ----------
+  document.getElementById("dash-bookmarks").innerHTML = directoryPaths.slice(0, 3).map(p => `
+    <div class="rare-card">
+      <span class="rare-tag">${p.tag[0]}</span>
+      <h3>${p.title}</h3>
+      <p>${p.desc}</p>
+    </div>`).join("");
+
+  // ---------- View switching ----------
+  function switchView(view) {
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-" + view).classList.add("active");
+    document.querySelectorAll(".nav-link").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  document.querySelectorAll(".nav-link").forEach(btn => {
+    btn.addEventListener("click", () => switchView(btn.dataset.view));
+  });
+
+  // ---------- Real Firebase Auth (Google sign-in) ----------
+  const signinBtn = document.getElementById("signin-btn");
+  const dashName = document.getElementById("dash-name");
+  const dashAvatar = document.getElementById("dash-avatar");
+  const googleProvider = new firebase.auth.GoogleAuthProvider();
+  let currentUser = null;
+
+  function getUserName() {
+    if (currentUser) {
+      return currentUser.displayName || localStorage.getItem("pf_custom_name") || currentUser.email || "Explorer";
+    }
+    return localStorage.getItem("pf_custom_name") || "Explorer";
+  }
+
+  function getUserPfp() {
+    if (currentUser && currentUser.photoURL) return currentUser.photoURL;
+    return localStorage.getItem("pf_custom_pfp") || "";
+  }
+
+  function refreshSignedInUI() {
+    const name = getUserName();
+    const pfp = getUserPfp();
+
+    if (currentUser) {
+      signinBtn.textContent = name;
+    } else {
+      signinBtn.textContent = "Sign in";
+    }
+    dashName.textContent = name;
+
+    if (pfp) {
+      dashAvatar.style.backgroundImage = `url(${pfp})`;
+      dashAvatar.textContent = "";
+    } else {
+      dashAvatar.style.backgroundImage = "none";
+      dashAvatar.textContent = initials(name);
+    }
+  }
+
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    refreshSignedInUI();
+    if (typeof renderCommunity === "function") renderCommunity();
+  });
+
+  signinBtn.addEventListener("click", () => {
+    if (currentUser) {
+      if (confirm("Sign out of Pathfinder?")) auth.signOut();
+    } else {
+      auth.signInWithPopup(googleProvider).catch(err => {
+        alert("Sign-in failed: " + err.message + "\n\nMake sure Google sign-in is enabled in Firebase Auth, and that this site's domain is added under Authentication → Settings → Authorized domains.");
+      });
+    }
+  });
+  refreshSignedInUI();
+
+  // ---------- PROFILE SETTINGS LOGIC ----------
+  const profileModal = document.getElementById("profile-modal");
+  const editProfileBtn = document.getElementById("edit-profile-btn");
+  const profileNameInput = document.getElementById("profile-name-input");
+  const profilePfpInput = document.getElementById("profile-pfp-input");
+  const pfpPreview = document.getElementById("pfp-preview");
+  let pendingPfpBase64 = null;
+
+  editProfileBtn.addEventListener("click", () => {
+    profileNameInput.value = getUserName();
+    pendingPfpBase64 = getUserPfp();
+    pfpPreview.innerHTML = pendingPfpBase64 ? `<img src="${pendingPfpBase64}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin-top:8px;">` : "";
+    profileModal.classList.add("open");
+  });
+
+  document.getElementById("profile-cancel").addEventListener("click", () => profileModal.classList.remove("open"));
+
+  profilePfpInput.addEventListener("change", () => {
+    const file = profilePfpInput.files[0];
+    if (!file) return;
+
+    if (file.size > 500 * 1024) {
+      alert("Image size should be less than 500KB.");
+      profilePfpInput.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingPfpBase64 = reader.result;
+      pfpPreview.innerHTML = `<img src="${reader.result}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin-top:8px;">`;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("profile-save").addEventListener("click", async () => {
+    const newName = profileNameInput.value.trim();
+    if (!newName) return;
+
+    localStorage.setItem("pf_custom_name", newName);
+    if (pendingPfpBase64) {
+      localStorage.setItem("pf_custom_pfp", pendingPfpBase64);
+    }
+
+    if (currentUser) {
+      try {
+        await currentUser.updateProfile({
+          displayName: newName,
+          photoURL: pendingPfpBase64 || currentUser.photoURL
+        });
+      } catch (err) {
+        console.error("Firebase profile update error:", err);
+      }
+    }
+
+    refreshSignedInUI();
+    renderCommunity();
+    renderArticles();
+    profileModal.classList.remove("open");
+  });
+
+  // ---------- Path Builder ----------
+  function getRoadmap() {
+    try { return JSON.parse(localStorage.getItem("pathfinder_roadmap") || "[]"); }
+    catch (e) { return []; }
+  }
+  function saveRoadmap(list) {
+    try { localStorage.setItem("pathfinder_roadmap", JSON.stringify(list)); } catch (e) {}
+  }
+
+  function renderTimeline() {
+    const list = getRoadmap();
+    const el = document.getElementById("builder-timeline");
+    if (list.length === 0) {
+      el.innerHTML = `<div class="timeline-empty">No milestones yet — add your first one to start the timeline.</div>`;
+      return;
+    }
+    el.innerHTML = list.map((m, i) => `
+      <div class="milestone-item">
+        <button class="milestone-remove" data-index="${i}" aria-label="Remove milestone">&times;</button>
+        ${m.time ? `<div class="milestone-time">${m.time}</div>` : ""}
+        <h4>${m.title}</h4>
+        ${m.desc ? `<p>${m.desc}</p>` : ""}
+      </div>`).join("");
+
+    el.querySelectorAll(".milestone-remove").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const list = getRoadmap();
+        list.splice(Number(btn.dataset.index), 1);
+        saveRoadmap(list);
+        renderTimeline();
+      });
+    });
+  }
+
+  document.getElementById("add-milestone-btn").addEventListener("click", () => {
+    const title = document.getElementById("milestone-title").value.trim();
+    const time = document.getElementById("milestone-time").value.trim();
+    const desc = document.getElementById("milestone-desc").value.trim();
+    if (!title) { document.getElementById("milestone-title").focus(); return; }
+
+    const list = getRoadmap();
+    list.push({ title, time, desc });
+    saveRoadmap(list);
+
+    document.getElementById("milestone-title").value = "";
+    document.getElementById("milestone-time").value = "";
+    document.getElementById("milestone-desc").value = "";
+    renderTimeline();
+  });
+
+  const postsRef = db.collection("posts");
+
+  document.getElementById("publish-roadmap-btn").addEventListener("click", () => {
+    if (!currentUser) { alert("Please sign in with Google first so your roadmap is attributed to you."); return; }
+    const title = document.getElementById("roadmap-title").value.trim();
+    const list = getRoadmap();
+    if (!title || list.length === 0) {
+      alert("Give your roadmap a title and at least one milestone before publishing.");
+      return;
+    }
+    postsRef.add({
+      type: "project",
+      title,
+      desc: list[0].desc || list[0].title,
+      milestones: list,
+      milestoneCount: list.length,
+      authorName: getUserName(),
+      authorPfp: getUserPfp(),
+      authorUid: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      alert(`"${title}" published with ${list.length} milestone${list.length !== 1 ? "s" : ""}. Check the Community tab \u2014 it's now visible to everyone, permanently.`);
+    }).catch(err => {
+      alert("Couldn't publish: " + err.message + "\n\nCheck your Firestore security rules allow signed-in users to write to the 'posts' collection.");
+    });
+  });
+
+  renderTimeline();
+
+  // ---------- Write a story (blog publishing, with photo/video) ----------
+  const writeStoryBtn = document.createElement("button");
+  writeStoryBtn.className = "btn btn-primary";
+  writeStoryBtn.textContent = "Write your story";
+  writeStoryBtn.style.marginBottom = "24px";
+  blogTabsEl.insertAdjacentElement("beforebegin", writeStoryBtn);
+
+  const storyModal = document.getElementById("story-modal");
+  const storyCatInput = document.getElementById("story-cat-input");
+  const storyMediaInput = document.getElementById("story-media-input");
+  const storyMediaPreview = document.getElementById("story-media-preview");
+  let pendingMediaBase64 = null;
+
+  function openStoryModal() {
+    if (!currentUser) {
+      storyModal.classList.remove("open");
+      if (confirm("Sign in with Google to publish a story. Sign in now?")) signinBtn.click();
+      return;
+    }
+    storyCatInput.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join("");
+    storyCatInput.value = activeCat;
+    document.getElementById("story-title-input").value = "";
+    document.getElementById("story-desc-input").value = "";
+    storyMediaInput.value = "";
+    storyMediaPreview.innerHTML = "";
+    pendingMediaBase64 = null;
+    storyModal.classList.add("open");
+  }
+
+  writeStoryBtn.addEventListener("click", openStoryModal);
+  document.getElementById("story-cancel").addEventListener("click", () => storyModal.classList.remove("open"));
+
+  storyMediaInput.addEventListener("change", () => {
+    const file = storyMediaInput.files[0];
+    storyMediaPreview.innerHTML = "";
+    pendingMediaBase64 = null;
+    if (!file) return;
+
+    if (file.size > 700 * 1024) {
+      storyMediaPreview.innerHTML = `<div style="font-size:12px; color:var(--text-faint); margin-top:8px;">Photo too large (max ~700KB since it's stored free, no paid plan needed). Try a smaller or compressed image.</div>`;
+      storyMediaInput.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingMediaBase64 = reader.result;
+      storyMediaPreview.innerHTML = `<img class="article-media" src="${reader.result}" style="margin-top:12px;">`;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("story-save").addEventListener("click", () => {
+    const title = document.getElementById("story-title-input").value.trim();
+    const desc = document.getElementById("story-desc-input").value.trim();
+    const cat = storyCatInput.value;
+    if (!title) { document.getElementById("story-title-input").focus(); return; }
+    if (!currentUser) { alert("Please sign in first."); return; }
+
+    const saveBtn = document.getElementById("story-save");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Publishing...";
+
+    const basePost = {
+      type: "story",
+      title, desc, category: cat,
+      authorName: getUserName(),
+      authorPfp: getUserPfp(),
+      authorUid: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (pendingMediaBase64) {
+      basePost.media = { type: "image", src: pendingMediaBase64 };
+    }
+
+    postsRef.add(basePost).then(() => {
+      activeCat = cat;
+      storyModal.classList.remove("open");
+      renderBlogTabs();
+    }).catch(err => {
+      alert("Couldn't publish: " + err.message + "\n\nCheck your Firestore security rules allow signed-in users to write to the 'posts' collection.");
+    }).finally(() => {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Publish story";
+    });
+  });
+
+  // ---------- Community feed ----------
+  const avatarPalette = ["#4fe8d8", "#9d6bff", "#f5a45d", "#6ba8ff", "#ff7ab8", "#7ee08a"];
+
+  const seededPosts = [
+    { author: "Mira K.", type: "reel", title: "A day foraging for a 3-star kitchen", desc: "Started at 5am in the woods — by noon this was on someone's plate in the city." },
+    { author: "Devon R.", type: "project", title: "0 to $6K/mo: my micro-SaaS roadmap", desc: "Shipped a tiny tool for freelancers, no funding, no team.", milestoneCount: 6 },
+    { author: "Ayesha N.", type: "story", title: "Why I left a PM job to scout esports talent", desc: "It started as a hobby spreadsheet. Now it's my full-time job." },
+    { author: "Tobias L.", type: "reel", title: "Inside a perfume formulation session", desc: "Blending a new scent for an indie fragrance label, start to finish." },
+    { author: "Priya S.", type: "project", title: "Launching a climate-risk consultancy", desc: "Milestones from first client to a five-person team.", milestoneCount: 8 },
+    { author: "Sam O.", type: "story", title: "Printing my first prosthetic hand", desc: "What nobody tells you about breaking into medical fabrication." },
+  ];
+
+  function initials(name) {
+    if (!name) return "E";
+    return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  }
+
+  function renderMediaBlock(post) {
+    if (post.media) {
+      return post.media.type === "video"
+        ? `<video class="article-media" src="${post.media.src}" controls></video>`
+        : `<img class="article-media" src="${post.media.src}" alt="">`;
+    }
+    if (post.type === "reel" && !post.media) {
+      return `<div class="post-video-placeholder">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="var(--text)" opacity="0.7"><path d="M8 5v14l11-7z"/></svg>
+      </div>`;
+    }
+    return "";
+  }
+
+  let communityFilter = "all";
+
+  function buildFeedPosts() {
+    const realPosts = firestorePosts.map(p => ({
+      author: p.authorName || "Explorer",
+      pfp: p.authorPfp || null,
+      type: p.type,
+      title: p.title,
+      desc: p.desc,
+      media: p.media || null,
+      milestoneCount: p.milestoneCount,
+      mine: currentUser && p.authorUid === currentUser.uid
+    }));
+    return [...realPosts, ...seededPosts];
+  }
+
+  function renderCommunity() {
+    const feed = document.getElementById("community-feed");
+    const posts = buildFeedPosts().filter(p => communityFilter === "all" || p.type === communityFilter);
+
+    feed.innerHTML = posts.map((p, i) => {
+      const pfpUrl = p.mine ? getUserPfp() : p.pfp;
+      const avatarStyle = pfpUrl 
+        ? `background-image:url(${pfpUrl});` 
+        : `background:${avatarPalette[i % avatarPalette.length]}`;
+
+      return `
+      <div class="post-card">
+        <div class="post-head">
+          <div class="post-avatar" style="${avatarStyle}">${pfpUrl ? "" : initials(p.author)}</div>
+          <div class="post-author">${p.mine ? getUserName() : p.author}</div>
+          <div class="post-type-badge">${p.type}</div>
+        </div>
+        <h3>${p.title}</h3>
+        <p>${p.desc || ""}</p>
+        ${renderMediaBlock(p)}
+        ${p.type === "project" ? `<div class="post-milestones">${p.milestoneCount || 0} milestones mapped</div>` : ""}
+        ${!p.mine ? `<div class="post-stats"><span>${20 + (i * 7) % 180} likes</span><span>${5 + (i * 3) % 40} comments</span></div>` : `<div class="post-stats"><span>Published by you</span></div>`}
+      </div>`;
+    }).join("");
+  }
+
+  const communityTabs = ["all", "story", "project", "reel"];
+  const communityTabLabels = { all: "All", story: "Stories", project: "Projects", reel: "Reels" };
+  const communityTabsEl = document.getElementById("community-tabs");
+  function renderCommunityTabs() {
+    communityTabsEl.innerHTML = communityTabs.map(t =>
+      `<button class="blog-tab ${t === communityFilter ? "on" : ""}" data-filter="${t}">${communityTabLabels[t]}</button>`
+    ).join("");
+    communityTabsEl.querySelectorAll(".blog-tab").forEach(btn => {
+      btn.onclick = () => { communityFilter = btn.dataset.filter; renderCommunityTabs(); renderCommunity(); };
+    });
+  }
+  renderCommunityTabs();
+  renderCommunity();
+
+  // ---------- Live Firestore sync ----------
+  postsRef.orderBy("createdAt", "desc").onSnapshot(snapshot => {
+    firestorePosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderArticles();
+    renderCommunity();
+  }, err => {
+    console.error("Firestore listener error:", err);
+  });
+
+  // ---------- AI Guide panel ----------
+  const aiPanel = document.getElementById("ai-panel");
+  const backdrop = document.getElementById("backdrop");
+  const aiLauncher = document.getElementById("ai-launcher");
+  const aiClose = document.getElementById("ai-close");
+  const aiBody = document.getElementById("ai-body");
+  const aiInput = document.getElementById("ai-input");
+  const aiSend = document.getElementById("ai-send");
+  const configNote = document.getElementById("config-note");
+
+  function openPanel() { aiPanel.classList.add("open"); backdrop.classList.add("show"); }
+  function closePanel() { aiPanel.classList.remove("open"); backdrop.classList.remove("show"); }
+
+  aiLauncher.addEventListener("click", openPanel);
+  aiClose.addEventListener("click", closePanel);
+  backdrop.addEventListener("click", closePanel);
+
+  // ---------- Backend config (stored per-browser only) ----------
+  const configModal = document.getElementById("config-modal");
+  const proxyInput = document.getElementById("proxy-url-input");
+  const openConfigBtn = document.getElementById("open-config");
+
+  function getProxyUrl() {
+    try { return localStorage.getItem("pathfinder_proxy_url") || ""; }
+    catch (e) { return ""; }
+  }
+  function setProxyUrl(url) {
+    try { localStorage.setItem("pathfinder_proxy_url", url); } catch (e) {}
+  }
+
+  function refreshConfigNote() {
+    const url = getProxyUrl();
+    if (url) {
+      configNote.innerHTML = `Connected to your AI backend. <button class="link" id="open-config-2">Change</button>`;
+      document.getElementById("open-config-2").onclick = () => openConfig();
+    } else {
+      configNote.innerHTML = `Not connected yet. <button class="link" id="open-config-3">Add your AI backend URL</button> to activate real responses.`;
+      document.getElementById("open-config-3").onclick = () => openConfig();
+    }
+  }
+
+  function openConfig() {
+    proxyInput.value = getProxyUrl();
+    configModal.classList.add("open");
+  }
+  openConfigBtn.addEventListener("click", openConfig);
+  document.getElementById("config-cancel").addEventListener("click", () => configModal.classList.remove("open"));
+  document.getElementById("config-save").addEventListener("click", () => {
+    setProxyUrl(proxyInput.value.trim());
+    configModal.classList.remove("open");
+    refreshConfigNote();
+  });
+
+  refreshConfigNote();
+
+  // ---------- Chat logic ----------
+  let history = [];
+
+  function addMsg(role, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.textContent = text;
+    aiBody.appendChild(div);
+    aiBody.scrollTop = aiBody.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const text = aiInput.value.trim();
+    if (!text) return;
+    aiInput.value = "";
+    addMsg("user", text);
+    history.push({ role: "user", content: text });
+
+    const proxyUrl = getProxyUrl();
+    if (!proxyUrl) {
+      addMsg("system", "No AI backend connected — add your Worker URL via the banner above to get real answers.");
+      return;
+    }
+
+    addMsg("system", "Thinking...");
+    try {
+      const res = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+      });
+      const data = await res.json();
+      aiBody.removeChild(aiBody.lastChild); // remove "Thinking..."
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      addMsg("bot", data.reply);
+      history.push({ role: "assistant", content: data.reply });
+    } catch (err) {
+      aiBody.removeChild(aiBody.lastChild);
+      addMsg("system", "Couldn't reach your AI backend. Check the URL and that it's deployed.");
+    }
+  }
+
+  aiSend.addEventListener("click", sendMessage);
+  aiInput.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+</script>
+
+</body>
+</html>
