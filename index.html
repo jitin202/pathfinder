@@ -521,13 +521,16 @@
   .article-card:hover { padding-left: 6px; }
   .article-card:last-child { border-bottom: none; }
 
+  /* FIX: Fixed image sizing so photo displays fully & scales properly without browser zoom */
   .article-media {
     width: 100%;
-    max-height: 260px;
+    max-width: 100%;
+    max-height: 400px;
     object-fit: cover;
     border-radius: 10px;
     margin-top: 12px;
     border: 1px solid var(--border);
+    display: block;
   }
 
   .article-num {
@@ -563,6 +566,15 @@
     border-radius: 50%;
     background: linear-gradient(135deg, var(--cyan), var(--purple));
     margin: 0 auto 16px;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #0a0a0d;
+    font-size: 20px;
+    overflow: hidden;
   }
 
   .dash-profile h3 { font-size: 16px; margin-bottom: 4px; }
@@ -906,6 +918,9 @@
     font-size: 12.5px;
     font-weight: 700;
     color: #0a0a0d;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
   }
 
   .post-author { font-size: 13.5px; font-weight: 600; }
@@ -1118,9 +1133,10 @@
   <section class="section" style="border-bottom:none; padding-top:56px;">
     <div class="wrap dash-grid">
       <div class="dash-profile">
-        <div class="avatar"></div>
+        <div class="avatar" id="dash-avatar"></div>
         <h3 id="dash-name">Explorer</h3>
         <div class="tier">Pathfinder member</div>
+        <button class="btn btn-ghost" id="edit-profile-btn" style="font-size: 12px; padding: 4px 12px; margin-bottom: 16px; border: 1px solid var(--border);">Edit Profile</button>
         <div class="xp-bar"><div class="xp-fill"></div></div>
         <div class="xp-label">420 / 1000 XP to next badge</div>
       </div>
@@ -1147,6 +1163,26 @@
 </div>
 
 <footer>Pathfinder — a prototype interface. Sample data shown throughout.</footer>
+
+<!-- ============ PROFILE SETTINGS MODAL ============ -->
+<div class="config-modal" id="profile-modal">
+  <div class="config-box" style="width:420px;">
+    <h4>Profile Settings</h4>
+    <p>Update your display name and profile picture (PFP).</p>
+    
+    <div class="field-label">Display Name</div>
+    <input type="text" id="profile-name-input" placeholder="Your name or alias" class="form-input">
+    
+    <div class="field-label" style="margin-top:10px;">Profile Picture (PFP)</div>
+    <input type="file" id="profile-pfp-input" accept="image/*" class="form-input" style="padding:8px;">
+    <div id="pfp-preview" style="margin-bottom:16px;"></div>
+
+    <div class="config-actions">
+      <button class="btn btn-ghost" id="profile-cancel">Cancel</button>
+      <button class="btn btn-primary" id="profile-save">Save Settings</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============ AI GUIDE ============ -->
 <div class="backdrop" id="backdrop"></div>
@@ -1402,20 +1438,39 @@
   // ---------- Real Firebase Auth (Google sign-in) ----------
   const signinBtn = document.getElementById("signin-btn");
   const dashName = document.getElementById("dash-name");
+  const dashAvatar = document.getElementById("dash-avatar");
   const googleProvider = new firebase.auth.GoogleAuthProvider();
   let currentUser = null;
 
   function getUserName() {
-    return currentUser ? (currentUser.displayName || currentUser.email || "Explorer") : "";
+    if (currentUser) {
+      return currentUser.displayName || localStorage.getItem("pf_custom_name") || currentUser.email || "Explorer";
+    }
+    return localStorage.getItem("pf_custom_name") || "Explorer";
+  }
+
+  function getUserPfp() {
+    if (currentUser && currentUser.photoURL) return currentUser.photoURL;
+    return localStorage.getItem("pf_custom_pfp") || "";
   }
 
   function refreshSignedInUI() {
+    const name = getUserName();
+    const pfp = getUserPfp();
+
     if (currentUser) {
-      signinBtn.textContent = getUserName();
-      dashName.textContent = getUserName();
+      signinBtn.textContent = name;
     } else {
       signinBtn.textContent = "Sign in";
-      dashName.textContent = "Explorer";
+    }
+    dashName.textContent = name;
+
+    if (pfp) {
+      dashAvatar.style.backgroundImage = `url(${pfp})`;
+      dashAvatar.textContent = "";
+    } else {
+      dashAvatar.style.backgroundImage = "none";
+      dashAvatar.textContent = initials(name);
     }
   }
 
@@ -1435,6 +1490,67 @@
     }
   });
   refreshSignedInUI();
+
+  // ---------- PROFILE SETTINGS LOGIC ----------
+  const profileModal = document.getElementById("profile-modal");
+  const editProfileBtn = document.getElementById("edit-profile-btn");
+  const profileNameInput = document.getElementById("profile-name-input");
+  const profilePfpInput = document.getElementById("profile-pfp-input");
+  const pfpPreview = document.getElementById("pfp-preview");
+  let pendingPfpBase64 = null;
+
+  editProfileBtn.addEventListener("click", () => {
+    profileNameInput.value = getUserName();
+    pendingPfpBase64 = getUserPfp();
+    pfpPreview.innerHTML = pendingPfpBase64 ? `<img src="${pendingPfpBase64}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin-top:8px;">` : "";
+    profileModal.classList.add("open");
+  });
+
+  document.getElementById("profile-cancel").addEventListener("click", () => profileModal.classList.remove("open"));
+
+  profilePfpInput.addEventListener("change", () => {
+    const file = profilePfpInput.files[0];
+    if (!file) return;
+
+    if (file.size > 500 * 1024) {
+      alert("Image size should be less than 500KB.");
+      profilePfpInput.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingPfpBase64 = reader.result;
+      pfpPreview.innerHTML = `<img src="${reader.result}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin-top:8px;">`;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("profile-save").addEventListener("click", async () => {
+    const newName = profileNameInput.value.trim();
+    if (!newName) return;
+
+    localStorage.setItem("pf_custom_name", newName);
+    if (pendingPfpBase64) {
+      localStorage.setItem("pf_custom_pfp", pendingPfpBase64);
+    }
+
+    if (currentUser) {
+      try {
+        await currentUser.updateProfile({
+          displayName: newName,
+          photoURL: pendingPfpBase64 || currentUser.photoURL
+        });
+      } catch (err) {
+        console.error("Firebase profile update error:", err);
+      }
+    }
+
+    refreshSignedInUI();
+    renderCommunity();
+    renderArticles();
+    profileModal.classList.remove("open");
+  });
 
   // ---------- Path Builder ----------
   function getRoadmap() {
@@ -1503,6 +1619,7 @@
       milestones: list,
       milestoneCount: list.length,
       authorName: getUserName(),
+      authorPfp: getUserPfp(),
       authorUid: currentUser.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
@@ -1552,7 +1669,6 @@
     pendingMediaBase64 = null;
     if (!file) return;
 
-    // Stored directly in Firestore (free tier), so kept small — no paid Storage needed.
     if (file.size > 700 * 1024) {
       storyMediaPreview.innerHTML = `<div style="font-size:12px; color:var(--text-faint); margin-top:8px;">Photo too large (max ~700KB since it's stored free, no paid plan needed). Try a smaller or compressed image.</div>`;
       storyMediaInput.value = "";
@@ -1582,6 +1698,7 @@
       type: "story",
       title, desc, category: cat,
       authorName: getUserName(),
+      authorPfp: getUserPfp(),
       authorUid: currentUser.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -1614,6 +1731,7 @@
   ];
 
   function initials(name) {
+    if (!name) return "E";
     return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   }
 
@@ -1636,6 +1754,7 @@
   function buildFeedPosts() {
     const realPosts = firestorePosts.map(p => ({
       author: p.authorName || "Explorer",
+      pfp: p.authorPfp || null,
       type: p.type,
       title: p.title,
       desc: p.desc,
@@ -1650,11 +1769,17 @@
     const feed = document.getElementById("community-feed");
     const posts = buildFeedPosts().filter(p => communityFilter === "all" || p.type === communityFilter);
 
-    feed.innerHTML = posts.map((p, i) => `
+    feed.innerHTML = posts.map((p, i) => {
+      const pfpUrl = p.mine ? getUserPfp() : p.pfp;
+      const avatarStyle = pfpUrl 
+        ? `background-image:url(${pfpUrl});` 
+        : `background:${avatarPalette[i % avatarPalette.length]}`;
+
+      return `
       <div class="post-card">
         <div class="post-head">
-          <div class="post-avatar" style="background:${avatarPalette[i % avatarPalette.length]}">${initials(p.author)}</div>
-          <div class="post-author">${p.mine ? "You" : p.author}</div>
+          <div class="post-avatar" style="${avatarStyle}">${pfpUrl ? "" : initials(p.author)}</div>
+          <div class="post-author">${p.mine ? getUserName() : p.author}</div>
           <div class="post-type-badge">${p.type}</div>
         </div>
         <h3>${p.title}</h3>
@@ -1662,7 +1787,8 @@
         ${renderMediaBlock(p)}
         ${p.type === "project" ? `<div class="post-milestones">${p.milestoneCount || 0} milestones mapped</div>` : ""}
         ${!p.mine ? `<div class="post-stats"><span>${20 + (i * 7) % 180} likes</span><span>${5 + (i * 3) % 40} comments</span></div>` : `<div class="post-stats"><span>Published by you</span></div>`}
-      </div>`).join("");
+      </div>`;
+    }).join("");
   }
 
   const communityTabs = ["all", "story", "project", "reel"];
