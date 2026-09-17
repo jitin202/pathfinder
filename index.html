@@ -7,6 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Google Custom Search Engine Script -->
+<script async src="https://cse.google.com/cse.js?cx=73d4b93348baf4e05"></script>
+
 <style>
   :root {
     --bg: #09090d;
@@ -248,45 +252,15 @@
     letter-spacing: 0.01em;
   }
 
-  .search-box {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 6px 8px 6px 20px;
-    transition: border-color 0.15s ease;
+  /* Custom overrides to smooth Google Search component with dark theme */
+  .gcse-search {
+    margin-bottom: 12px;
   }
-
-  .search-box:focus-within {
-    border-color: var(--purple);
-    box-shadow: 0 0 0 3px var(--purple-soft);
-  }
-
-  .search-box input {
-    flex: 1;
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 15.5px;
-    font-family: var(--sans);
-    padding: 13px 0;
-  }
-
-  .search-box input:focus { outline: none; }
-  .search-box input::placeholder { color: var(--text-faint); }
-
-  .search-box button {
-    background: linear-gradient(135deg, var(--cyan), var(--purple));
-    border: none;
-    color: #0a0a0d;
-    font-weight: 700;
-    font-size: 14px;
-    padding: 12px 20px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    white-space: nowrap;
+  
+  .gsc-control-cse {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
   }
 
   .quick-tags {
@@ -521,7 +495,6 @@
   .article-card:hover { padding-left: 6px; }
   .article-card:last-child { border-bottom: none; }
 
-  /* FIX: Fixed image sizing so photo displays fully & scales properly without browser zoom */
   .article-media {
     width: 100%;
     max-width: 100%;
@@ -1018,10 +991,10 @@
 
       <div class="search-shell">
         <div class="search-label">DISCOVER YOUR NEXT PATH</div>
-        <div class="search-box">
-          <input type="text" placeholder="Try 'quiet, solo, pays well' or 'scent design'..." id="hero-search">
-          <button onclick="switchView('directory')">Explore</button>
-        </div>
+        
+        <!-- Integrated Google Programmable Search Engine -->
+        <div class="gcse-search"></div>
+
         <div class="quick-tags">
           <button class="quick-tag">#LowCapital</button>
           <button class="quick-tag">#RemoteSolo</button>
@@ -1786,7 +1759,7 @@
         <p>${p.desc || ""}</p>
         ${renderMediaBlock(p)}
         ${p.type === "project" ? `<div class="post-milestones">${p.milestoneCount || 0} milestones mapped</div>` : ""}
-        ${!p.mine ? `<div class="post-stats"><span>${20 + (i * 7) % 180} likes</span><span>${5 + (i * 3) % 40} comments</span></div>` : `<div class="post-stats"><span>Published by you</span></div>`}
+        ${!p.mine ? `<div class="post-stats"><span>${20 + (i * 7) \% 180} likes</span><span>${5 + (i * 3) % 40} comments</span></div>` : `<div class="post-stats"><span>Published by you</span></div>`}
       </div>`;
     }).join("");
   }
