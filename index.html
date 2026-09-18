@@ -2060,9 +2060,12 @@
   const openConfigBtn = document.getElementById("open-config");
 
   function getProxyUrl() {
-    try { return localStorage.getItem("pathfinder_proxy_url") || ""; }
-    catch (e) { return ""; }
+  try { 
+    return localStorage.getItem("pathfinder_proxy_url") || "https://bitter-moon-6e03.jaat70802.workers.dev/"; 
+  } catch (e) { 
+    return "https://bitter-moon-6e03.jaat70802.workers.dev/"; 
   }
+}
   function setProxyUrl(url) {
     try { localStorage.setItem("pathfinder_proxy_url", url); } catch (e) {}
   }
